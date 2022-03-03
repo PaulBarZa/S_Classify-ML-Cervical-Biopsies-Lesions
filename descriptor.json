@@ -1,0 +1,54 @@
+{
+    "name": "S_LesionsDetect-Cervical-Biopsies",
+    "description": "Detect lesions in slides of uterine cervical tissue.",
+    "schema-version": "cytomine-0.1",
+    "inputs": [
+        {
+            "id": "cytomine_host",
+            "name": "Cytomine host",
+            "set-by-server": true,
+            "optional": false,
+            "type": "String"
+        },
+        {
+            "id": "cytomine_public_key",
+            "name": "Cytomine public key",
+            "set-by-server": true,
+            "optional": false,
+            "type": "String"
+        },
+        {
+            "id": "cytomine_private_key",
+            "name": "Cytomine private key",
+            "set-by-server": true,
+            "optional": false,
+            "type": "String"
+        },
+        {
+            "id": "cytomine_id_project",
+            "name": "Cytomine project ID",
+            "set-by-server": true,
+            "optional": false,
+            "type": "Number"
+        },
+        {
+            "id": "cytomine_id_software",
+            "name": "Cytomine software ID",
+            "set-by-server": true,
+            "optional": false,
+            "type": "Number"
+        },
+        {
+            "name": "Cytomine image identifiers",
+            "description": "The identifiers of the images to process. If not specified all image of the project will be processed.",
+            "set-by-server": false,
+            "value-key": "@ID",
+            "optional": true,
+            "id": "cytomine_id_images",
+            "type": "ListDomain",
+            "uri": "/api/project/$currentProject$/imageinstance.json",
+            "uri-print-attribute": "instanceFilename",
+            "command-line-flag": "--@id"
+        }
+    ]
+}

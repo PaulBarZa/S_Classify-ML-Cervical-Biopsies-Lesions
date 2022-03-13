@@ -29,7 +29,7 @@ RUN pip install -r /app/requirements.txt
 RUN apt-get install -y libvips
 
 # Add files
-ADD assets /app/assets/
+ADD assets /assets/
 ADD predict.py /app/predict.py
 ADD run.py /app/run.py
 

@@ -10,7 +10,7 @@ logging.basicConfig()
 logger = logging.getLogger("predict")
 logger.setLevel(logging.INFO)
 
-MODELS_FOLDER_PATH = Path("app/assets")
+MODELS_FOLDER_PATH = Path("assets")
 
 def to_gpu(inp, gpu=0):
     return inp.cuda(gpu, non_blocking=True)

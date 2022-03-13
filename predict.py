@@ -3,9 +3,14 @@ import logging
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import pyvips
 import torch
+
+logging.basicConfig()
+logger = logging.getLogger("predict")
+logger.setLevel(logging.INFO)
+
+MODELS_FOLDER_PATH = Path("app/assets")
 
 def to_gpu(inp, gpu=0):
     return inp.cuda(gpu, non_blocking=True)
@@ -25,7 +30,7 @@ def read_img(path):
 
 
 def get_tiles(img, tile_size, n_tiles, mode=0):
-    h, w, c = img.shape
+    h, w, _ = img.shape
     pad_h = (tile_size - h % tile_size) % tile_size + ((tile_size * mode) // 2)
     pad_w = (tile_size - w % tile_size) % tile_size + ((tile_size * mode) // 2)
 
@@ -88,9 +93,9 @@ class DS(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         item = self.images[index]
+        logger.info("Preprocess on image: %s", item.filename)
         img = read_img(os.path.join(self.root, item.filename))
 
-        logging.info("Preprocess on image: %s", item.filename)
         img, _ = get_tiles(
             img,
             tile_size=self.tile_size,
@@ -112,45 +117,64 @@ class DS(torch.utils.data.Dataset):
         return torch.stack(x), y
 
 
-def perform_inference(cj, images, model, data_root):
+def perform_inference(cj, images, data_root):
     tile_sizes = [(36, 256), (64, 192), (144, 128),]
     progress = 10
     progress_delta = 80 / len(tile_sizes)
 
     all_preds = []
-    batch_size = 8
+    batch_size = 1
+    logits = torch.zeros((batch_size, 3), dtype=torch.float32, device="cuda")
 
     for n_tiles, tile_size in tile_sizes:
         progress += progress_delta
 
         progress_message = "Starting inference for Dataset with n_tiles: {}, tile size: {}".format(n_tiles, tile_size)
-        logging.info(progress_message)
+        logger.info(progress_message)
         cj.job.update(progress=progress, statusComment=progress_message) 
+
+        # Loading model
+        model_path = (MODELS_FOLDER_PATH / f'{tile_size}')
+        logger.info("Reading models from %s", model_path)
+
+        models = [
+            torch.jit.load(str(p)).cuda().eval()
+            for p in model_path.rglob("model_best.pt")
+        ]
 
         # Dataset and preprocess
         ds = DS(images, data_root, n_tiles=n_tiles, tile_size=tile_size)
         loader = torch.utils.data.DataLoader(
             ds,
             batch_size=batch_size,
-            num_workers=batch_size,
+            # TODO: Test different num_workers
+            num_workers=8, #number of subprocesses to use for data, 0 = main process
             shuffle=False,
             collate_fn=DS.collate_fn,
             pin_memory=True,
         )
+        logger.info("Dataset initialized")
 
-        # Predictions
+        # Predictions step
         preds = []
         with torch.no_grad():
             for x, _ in loader:
+                logger.info("Start inference for image : {}/{}".format(len(preds) + 1, len(images)))
                 x = to_gpu(x)
-                pred = model(x).sigmoid().cpu().numpy()
-                preds.extend(pred)
-                logging.info("Prediction: %s", pred)
+                bs = len(x)
+
+                logits.zero_()
+                for model in models: 
+                    logits[:bs] += model(x).sigmoid()
+
+                logits /= len(models)
+                preds.extend(logits.cpu().numpy())
+                logger.info("Predictions: %s", preds)
         all_preds.append(preds)
 
     all_preds = np.array(all_preds).mean(0).sum(-1).round().astype("int")
 
-    logging.info("Ending inference with predicted class: %s", all_preds)
+    logger.info("Ending inference with predicted class: %s", all_preds)
     cj.job.update(progress=100, statusComment="Ending inference with predicted class: {}".format(all_preds)) 
     
     return all_preds

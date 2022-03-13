@@ -1,6 +1,6 @@
 {
-    "name": "S_LesionsDetect-Cervical-Biopsies",
-    "description": "Detect lesions in slides of uterine cervical tissue.",
+    "name": "S_Classify-ML-Cervical-Biopsies-Lesions",
+    "description": "Classify lesions in slides of uterine cervical tissue.",
     "schema-version": "cytomine-0.1",
     "inputs": [
         {

@@ -1,19 +1,21 @@
-
 import os
 import logging
 import shutil
 from pathlib import Path
 
-import efficientnet_pytorch
 from cytomine import CytomineJob
 from cytomine.models import *
 from predict import perform_inference
 
-def get_model(model_name, num_classes):
-    return efficientnet_pytorch.EfficientNet.from_pretrained(
-        model_name,
-        num_classes=num_classes,
-    ).cuda().eval()
+logging.basicConfig()
+logger = logging.getLogger("run")
+logger.setLevel(logging.INFO)
+
+CLASS_MESSAGES = ["Benign", "Low malignant potential", "High malignant potential", "Invasive cancer"]
+ERROR_CLASS_MESSAGE = "Invalid class prediction has been done"
+TEMP_IMAGES_DIR = "images"
+OUTPUT_FILENAME = "prediction.txt"
+OUTPUT_COMMENT = "Prediction file"
 
 def filter_images(images, images_id):
     filtered_images = []
@@ -23,10 +25,16 @@ def filter_images(images, images_id):
 
     return filtered_images
 
-def main(argv):
-    with CytomineJob.from_cli(argv) as cj:   
+def get_prediction_label(prediction):
+    if(prediction >= 0 & prediction <= 3):
+        return CLASS_MESSAGES[prediction]
+    else:
+        return ERROR_CLASS_MESSAGE
 
-        logging.info("Running job with parameter: %s", cj.parameters)
+def main(argv):
+    with CytomineJob.from_cli(argv) as cj:  
+
+        logger.info("Running job with parameter: %s", cj.parameters)
 
         # Fetch project images
         images = ImageInstanceCollection().fetch_with_filter("project", cj.parameters.cytomine_id_project)
@@ -43,41 +51,36 @@ def main(argv):
         
         # Create images directory from working path
         root_path = str(Path.home())
-        working_path = os.path.join(root_path, "images")
+        working_path = os.path.join(root_path, TEMP_IMAGES_DIR)
         os.makedirs(working_path, exist_ok=True)
 
         # And download them
-        logging.info("Downloading images")
+        logger.info("Downloading images")
         cj.job.update(progress=5, statusComment="Downloading images in: {}".format(working_path))
         for image in list_images:
+            logger.info("Download {}".format(image.filename))
             image.download(os.path.join(working_path, image.filename))
 
-        # Fetching model
-        model_name = 'efficientnet-b0'
-        num_classes = 3
-        progress_message = "Fetching model: {} with {} classes.".format(model_name, num_classes)
-
+        progress_message = "{} image(s) downloaded.".format(len(list_images))
         cj.job.update(progress=10, statusComment=progress_message)
-        logging.info(progress_message)
-
-        model = get_model(model_name, num_classes)
+        logger.info(progress_message)
 
         # Inference
-        logging.info("Starting inference")
-        predictions = perform_inference(cj, list_images, model, working_path)
+        logger.info("Starting inference")
+        predictions = perform_inference(cj, list_images, working_path)
 
-        logging.info("Sending result to UI")
-        output_filename = "prediction.txt"
+        logger.info("Sending result to UI")
+        output_filename = OUTPUT_FILENAME
         output_path = os.path.join(working_path, output_filename)
 
         # Write result
         f= open(output_path,"w+")
         for (i, image) in enumerate(list_images):
-            f.write("Prediction for image {}: {}.\r\n".format(image.filename, predictions[i]))
+            f.write("Prediction for image {}: {}.\r\n".format(image.filename, get_prediction_label(predictions[i])))
         f.close() 
 
         # Send result to UI
-        job_data = JobData(cj.job.id, "Generated File", output_filename).save()
+        job_data = JobData(cj.job.id, OUTPUT_COMMENT, output_filename).save()
         job_data.upload(output_path)
 
         shutil.rmtree(working_path, ignore_errors=True)

@@ -54,32 +54,31 @@ def main(argv):
         working_path = os.path.join(root_path, TEMP_IMAGES_DIR)
         os.makedirs(working_path, exist_ok=True)
 
-        # And download them
         logger.info("Downloading images")
         cj.job.update(progress=5, statusComment="Downloading images in: {}".format(working_path))
         for image in list_images:
             logger.info("Download {}".format(image.filename))
             image.download(os.path.join(working_path, image.filename))
 
+        progress = 10
         progress_message = "{} image(s) downloaded.".format(len(list_images))
         cj.job.update(progress=10, statusComment=progress_message)
         logger.info(progress_message)
 
-        # Inference
         logger.info("Starting inference")
-        predictions = perform_inference(cj, list_images, working_path)
+        predictions = perform_inference(cj, list_images, working_path, progress)
 
         logger.info("Sending result to UI")
         output_filename = OUTPUT_FILENAME
         output_path = os.path.join(working_path, output_filename)
 
-        # Write result
+        # Writing result
         f= open(output_path,"w+")
         for (i, image) in enumerate(list_images):
             f.write("Prediction for image {}: {}.\r\n".format(image.filename, get_prediction_label(predictions[i])))
         f.close() 
 
-        # Send result to UI
+        # Sending result to UI
         job_data = JobData(cj.job.id, OUTPUT_COMMENT, output_filename).save()
         job_data.upload(output_path)
 

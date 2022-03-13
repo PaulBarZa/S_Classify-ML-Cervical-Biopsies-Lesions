@@ -1,6 +1,6 @@
 {
     "name": "S_Classify-ML-Cervical-Biopsies-Lesions",
-    "description": "Classify lesions in slides of uterine cervical tissue.",
+    "description": "Classify lesions in slides of uterine cervical tissue according to the most severe category of epithelial lesion present in the sample.",
     "schema-version": "cytomine-0.1",
     "inputs": [
         {

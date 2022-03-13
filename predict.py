@@ -80,7 +80,6 @@ def concat_tiles(tiles, n_tiles, image_size):
 
     return img
 
-
 class DS(torch.utils.data.Dataset):
     def __init__(self, images, root, n_tiles, tile_size):
         self.images = images
@@ -117,10 +116,9 @@ class DS(torch.utils.data.Dataset):
         return torch.stack(x), y
 
 
-def perform_inference(cj, images, data_root):
+def perform_inference(cj, images, data_root, progress):
     tile_sizes = [(36, 256), (64, 192), (144, 128),]
-    progress = 10
-    progress_delta = 80 / len(tile_sizes)
+    progress_delta = (progress-10) / len(tile_sizes)
 
     all_preds = []
     batch_size = 1
@@ -153,7 +151,6 @@ def perform_inference(cj, images, data_root):
             collate_fn=DS.collate_fn,
             pin_memory=True,
         )
-        logger.info("Dataset initialized")
 
         # Predictions step
         preds = []

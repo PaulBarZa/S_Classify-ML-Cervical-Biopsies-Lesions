@@ -6,9 +6,9 @@
     
     * Third place algo of the [TissueNet: Detect Lesions in Cervical Biopsies](https://www.drivendata.org/competitions/67/competition-cervical-biopsy/).
 
-    * Author : [kbrodt](). 
+    * Author : [kbrodt](https://github.com/kbrodt). 
 
-    * Code repository : [here](https://ieeexplore.ieee.org/document/6868017).
+    * Code repository : [here](https://github.com/kbrodt/competition-cervical-biopsy).
 
 
 * **Parameters:** 

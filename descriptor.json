@@ -40,7 +40,7 @@
         },
         {
             "name": "Cytomine image identifiers",
-            "description": "The identifiers of the images to process. If not specified all image of the project will be processed.",
+            "description": "The identifiers of the images to process. If not specified all images of the project will be processed.",
             "set-by-server": false,
             "value-key": "@ID",
             "optional": true,
@@ -48,6 +48,19 @@
             "type": "ListDomain",
             "uri": "/api/project/$currentProject$/imageinstance.json",
             "uri-print-attribute": "instanceFilename",
+            "command-line-flag": "--@id"
+        },
+        {
+            "name": "Cytomine ROI term ID",
+            "description": "Ontology term ID for ROI where to process prediction. If not specified, the whole image will be used.",
+            "set-by-server": false,
+            "value-key": "@ID",
+            "optional": true,
+            "id": "cytomine_id_roi_term",
+            "type": "Domain",
+            "uri": "/api/ontology/$currentOntology$/term.json",
+            "uri-print-attribute": "name",
+            "uri-sort-attribute": "name",
             "command-line-flag": "--@id"
         }
     ]

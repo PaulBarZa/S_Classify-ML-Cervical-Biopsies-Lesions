@@ -81,19 +81,19 @@ def concat_tiles(tiles, n_tiles, image_size):
     return img
 
 class DS(torch.utils.data.Dataset):
-    def __init__(self, images, root, n_tiles, tile_size):
-        self.images = images
+    def __init__(self, images_filename, root, n_tiles, tile_size):
+        self.images_filename = images_filename
         self.root = root
         self.n_tiles = n_tiles
         self.tile_size = tile_size
 
     def __len__(self):
-        return len(self.images)
+        return len(self.images_filename)
 
     def __getitem__(self, index):
-        item = self.images[index]
-        logger.info("Preprocess on image: %s", item.filename)
-        img = read_img(os.path.join(self.root, item.filename))
+        filename = self.images_filename[index]
+        logger.info("Preprocess on image: %s", filename)
+        img = read_img(os.path.join(self.root, filename))
 
         img, _ = get_tiles(
             img,
@@ -107,7 +107,7 @@ class DS(torch.utils.data.Dataset):
         )
 
         img = to_tensor(img)
-        return img, item.filename
+        return img, filename
 
     @staticmethod
     def collate_fn(x):
@@ -116,7 +116,7 @@ class DS(torch.utils.data.Dataset):
         return torch.stack(x), y
 
 
-def perform_inference(cj, images, data_root, progress):
+def perform_inference(cj, images_filename, data_root, progress):
     tile_sizes = [(36, 256), (64, 192), (144, 128),]
     progress_delta = (progress-10) / len(tile_sizes)
 
@@ -141,7 +141,7 @@ def perform_inference(cj, images, data_root, progress):
         ]
 
         # Dataset and preprocess
-        ds = DS(images, data_root, n_tiles=n_tiles, tile_size=tile_size)
+        ds = DS(images_filename, data_root, n_tiles=n_tiles, tile_size=tile_size)
         loader = torch.utils.data.DataLoader(
             ds,
             batch_size=batch_size,
@@ -156,7 +156,7 @@ def perform_inference(cj, images, data_root, progress):
         preds = []
         with torch.no_grad():
             for x, _ in loader:
-                logger.info("Start inference for image : {}/{}".format(len(preds) + 1, len(images)))
+                logger.info("Start inference for image : {}/{}".format(len(preds) + 1, len(images_filename)))
                 x = to_gpu(x)
                 bs = len(x)
 
